@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Smart QR Studio",
+  "description": "A professional-grade QR code generator that uses Gemini AI to analyze links and suggest creative descriptions and optimized titles for your codes.",
+  "requestFramePermissions": []
+}
