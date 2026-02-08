@@ -1,5 +1,5 @@
 {
-  "name": "gemini-smart-qr-studio",
+  "name": "smart-barcode-generator-ai",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,7 +13,9 @@
     "lucide-react": "^0.562.0",
     "@google/genai": "^1.34.0",
     "react-dom": "^19.2.3",
-    "qrcode.react": "^4.2.0"
+    "qrcode.react": "^4.2.0",
+    "jsbarcode": "^3.11.6",
+    "jspdf": "^2.5.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
