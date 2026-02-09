@@ -1,45 +1,52 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlowSteps AI</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script>
-      // Cách khai báo Theme chuẩn cho UI Designer mà không gây lỗi trắng trang
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              primary: '#6366f1',
-              secondary: '#ec4899',
-              accent: '#8b5cf6',
-              neutral: '#1e293b',
-            }
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Barcode Generator AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Roboto', 'Lato', 'Segoe UI', 'sans-serif'],
           }
         }
       }
-    </script>
-    
-    <style>
-      body { font-family: 'Inter', sans-serif; }
-      .gradient-text {
-        background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-    </style>
-  </head>
-  <body class="bg-base-200 h-screen overflow-hidden text-base-content antialiased">
-    <div id="root"></div>
-    
-    <script type="module" src="./index.tsx"></script>
-  </body>
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Open+Sans:wght@300;400;600;700;800&family=Roboto:wght@300;400;500;700;900&family=Montserrat:wght@300;400;700;900&family=Oswald:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      /* Ensure default vertical scrolling is active */
+      overflow-y: auto; 
+    }
+    body {
+      font-family: 'Roboto', 'Lato', 'Segoe UI', sans-serif;
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "qrcode.react": "https://esm.sh/qrcode.react@^4.2.0",
+    "jsbarcode": "https://esm.sh/jsbarcode@^3.11.6",
+    "jspdf": "https://esm.sh/jspdf@^2.5.1"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
 </html>

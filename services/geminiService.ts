@@ -1,10 +1,33 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AISuggestion } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Helper to safely get API key in different environments (Vite/Browser/Node)
+const getApiKey = () => {
+  try {
+    // Check for standard process.env (Node/Webpack)
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    // process might be undefined in strict browser envs
+  }
+  return '';
+};
+
+const apiKey = getApiKey();
+// Only initialize if key exists, otherwise let specific calls handle errors or use dummy
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export const getSmartContext = async (url: string): Promise<AISuggestion> => {
+  if (!ai) {
+    console.warn("Gemini API Key missing");
+    return {
+      title: "New QR Code",
+      description: "Scan to open the link.",
+      suggestedColor: "#000000",
+    };
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",

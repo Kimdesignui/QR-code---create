@@ -8,7 +8,8 @@ export type BarcodeType =
   | 'UPC' 
   | 'ITF14' 
   | 'MSI' 
-  | 'pharmacode';
+  | 'pharmacode'
+  | 'codabar';
 
 export type ExportFormat = 'png' | 'jpeg' | 'svg' | 'pdf';
 

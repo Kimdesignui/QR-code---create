@@ -42,7 +42,9 @@ import {
   Contact,
   ArrowUpFromLine,
   ArrowDownToLine,
-  XCircle
+  XCircle,
+  Truck,
+  RotateCcw
 } from 'lucide-react';
 import { QRCodeConfig, GeneratedQR, BarcodeType, BarcodeDef, ExportFormat } from './types';
 import { getSmartContext } from './services/geminiService';
@@ -108,7 +110,7 @@ const BARCODE_DEFINITIONS: BarcodeDef[] = [
   { 
     type: 'qrcode', 
     label: 'QR Code', 
-    description: 'Liên kết web, Wifi, Vcard...', 
+    description: 'Tạo mã QR chuyên nghiệp cho Website, Wifi, Danh thiếp vCard và hơn thế nữa.', 
     colorClass: 'bg-violet-100', 
     iconClass: 'text-violet-600',
     illustration: <QrCode className="w-12 h-12" />
@@ -168,6 +170,14 @@ const BARCODE_DEFINITIONS: BarcodeDef[] = [
     colorClass: 'bg-pink-100', 
     iconClass: 'text-pink-600',
     illustration: <Pill className="w-12 h-12" />
+  },
+  { 
+    type: 'codabar', 
+    label: 'Codabar', 
+    description: 'Logistics, Thư viện & Y tế', 
+    colorClass: 'bg-rose-100', 
+    iconClass: 'text-rose-600',
+    illustration: <Layout className="w-12 h-12" />
   },
 ];
 
@@ -292,9 +302,19 @@ const LinearBarcode = ({ config, className }: { config: QRCodeConfig, className?
       if (!ctx) return;
 
       try {
+        // Prepare Value: EAN-13 Auto-Checksum for Display
+        // This ensures that if the user enters 12 digits, we calculate the 13th for correct rendering
+        let renderValue = config.value;
+        if (config.barcodeType === 'EAN13' && /^\d{12}$/.test(renderValue)) {
+            let sum = 0;
+            for(let i=0; i<12; i++) sum += parseInt(renderValue[i]) * (i % 2 === 0 ? 1 : 3);
+            const checksum = (10 - (sum % 10)) % 10;
+            renderValue += checksum;
+        }
+
         // 2. Generate Bars on a temp canvas (NO TEXT)
         const tempCanvas = document.createElement('canvas');
-        JsBarcode(tempCanvas, config.value, {
+        JsBarcode(tempCanvas, renderValue, { // Use renderValue instead of raw config.value
           format: config.barcodeType as any,
           lineColor: config.fgColor,
           background: 'transparent',
@@ -305,7 +325,7 @@ const LinearBarcode = ({ config, className }: { config: QRCodeConfig, className?
         });
 
         // 3. Layout Calculations
-        const isEAN13 = config.barcodeType === 'EAN13' && config.value.length === 13;
+        const isEAN13 = config.barcodeType === 'EAN13' && renderValue.length === 13;
         
         const fontSize = config.codeFontSize || 20;
         const textGap = config.codeTextGap ?? 5; // Use configured gap
@@ -340,7 +360,7 @@ const LinearBarcode = ({ config, className }: { config: QRCodeConfig, className?
             // Group 1: First Digit (Floating left, NO letter spacing)
             if (typeof ctx.letterSpacing !== 'undefined') ctx.letterSpacing = '0px';
             ctx.textAlign = 'right';
-            ctx.fillText(config.value[0], barXOffset - 2, tempCanvas.height + textGap);
+            ctx.fillText(renderValue[0], barXOffset - 2, tempCanvas.height + textGap);
 
             // Configure spacing for data blocks
             if (typeof ctx.letterSpacing !== 'undefined') {
@@ -351,12 +371,12 @@ const LinearBarcode = ({ config, className }: { config: QRCodeConfig, className?
             // Group 2: Digits 2-7 (Centered in Left Half)
             // Left half center is approx 25% of bar width
             const leftCenter = barXOffset + (barWidth * 0.25);
-            ctx.fillText(config.value.substring(1, 7), leftCenter, tempCanvas.height + textGap);
+            ctx.fillText(renderValue.substring(1, 7), leftCenter, tempCanvas.height + textGap);
 
             // Group 3: Digits 8-13 (Centered in Right Half)
             // Right half center is approx 75% of bar width
             const rightCenter = barXOffset + (barWidth * 0.75);
-            ctx.fillText(config.value.substring(7, 13), rightCenter, tempCanvas.height + textGap);
+            ctx.fillText(renderValue.substring(7, 13), rightCenter, tempCanvas.height + textGap);
 
         } else {
             // --- Standard Layout for other codes ---
@@ -364,7 +384,7 @@ const LinearBarcode = ({ config, className }: { config: QRCodeConfig, className?
             if (typeof ctx.letterSpacing !== 'undefined') {
                 ctx.letterSpacing = `${config.codeLetterSpacing || 0}px`;
             }
-            ctx.fillText(config.value, totalWidth / 2, tempCanvas.height + textGap);
+            ctx.fillText(renderValue, totalWidth / 2, tempCanvas.height + textGap);
         }
 
       } catch (e) {
@@ -414,30 +434,39 @@ const Header = ({ setView, view }: { setView: (v: any) => void, view: string }) 
 );
 
 const Dashboard = ({ handleSelectType }: { handleSelectType: (t: BarcodeType) => void }) => (
-    <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
+    // UPDATED: Changed from max-w-6xl to max-w-7xl to match Header
+    <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in duration-500">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight mb-2">Smart Barcode Generator AI</h1>
         <p className="text-slate-500 text-lg">Chọn loại mã bạn muốn tạo hôm nay</p>
       </div>
 
       {/* Grid Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-16">
-        {BARCODE_DEFINITIONS.map((def) => (
-          <button
-            key={def.type}
-            onClick={() => handleSelectType(def.type)}
-            className={`relative group p-6 rounded-3xl border border-white/50 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center gap-4 ${def.colorClass} hover:-translate-y-1`}
-          >
-            <div className={`p-4 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm ${def.iconClass} group-hover:scale-110 transition-transform`}>
-              {def.illustration}
-            </div>
-            <div>
-              <h3 className={`font-bold text-lg mb-1 ${def.iconClass}`}>{def.label}</h3>
-              <p className="text-xs font-medium text-slate-500/80 leading-snug">{def.description}</p>
-            </div>
-            <div className="absolute inset-0 rounded-3xl ring-2 ring-white/0 group-hover:ring-white/50 transition-all" />
-          </button>
-        ))}
+      {/* UPDATED: Changed grid to lg:grid-cols-3. In a 12-col logic, span 4 means 12/4 = 3 items per row. */}
+      {/* sm:grid-cols-2 ensures tablet view has 2 items per row. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+        {BARCODE_DEFINITIONS.map((def) => {
+            return (
+              <button
+                key={def.type}
+                onClick={() => handleSelectType(def.type)}
+                className={`
+                    relative group p-6 rounded-3xl border border-white/50 shadow-sm hover:shadow-xl transition-all duration-300 
+                    ${def.colorClass} hover:-translate-y-1
+                    flex flex-col items-center text-center gap-4
+                `}
+              >
+                <div className={`p-4 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm ${def.iconClass} group-hover:scale-110 transition-transform`}>
+                  {def.illustration}
+                </div>
+                <div>
+                  <h3 className={`font-bold text-lg mb-1 ${def.iconClass}`}>{def.label}</h3>
+                  <p className={`font-medium text-slate-500/80 leading-snug text-xs`}>{def.description}</p>
+                </div>
+                <div className="absolute inset-0 rounded-3xl ring-2 ring-white/0 group-hover:ring-white/50 transition-all" />
+              </button>
+            );
+        })}
       </div>
     </div>
 );
@@ -455,7 +484,8 @@ const Library = ({
     handleEdit: (item: GeneratedQR) => void,
     handleDelete: (id: string) => void
 }) => (
-    <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
+    // UPDATED: Changed to max-w-7xl for consistency
+    <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in duration-500">
         <div className="flex items-center gap-4 mb-8">
             <button 
                 onClick={handleBackToDashboard} 
@@ -565,7 +595,8 @@ const Editor = ({
             Quay lại Dashboard
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* UPDATED: Added items-start to ensure columns don't stretch to equal height, which fixes sticky behavior */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Controls */}
             <div className="lg:col-span-7 space-y-6">
                 
@@ -614,22 +645,40 @@ const Editor = ({
                                 onChange={(val) => {
                                     // Auto-clean for numeric types
                                     let cleanVal = val;
+                                    // UPDATED: Stricter cleaning for numeric barcodes.
+                                    // This removes letters like 'ISBN', 'EAN', etc. and leaves only numbers.
                                     if (['EAN13', 'UPC', 'ITF14', 'MSI', 'pharmacode'].includes(config.barcodeType)) {
-                                        cleanVal = val.replace(/[\-\s]/g, '');
+                                        cleanVal = val.replace(/[^0-9]/g, '');
                                     }
                                     setConfig(p => ({...p, value: cleanVal}));
                                 }}
                                 placeholder="Nhập nội dung mã..."
-                                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 outline-none text-slate-900 placeholder:text-slate-400 font-medium transition-all"
+                                // UPDATED: Increased pr-32 to accommodate Reset and AI buttons
+                                className="w-full pl-5 pr-32 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 outline-none text-slate-900 placeholder:text-slate-400 font-medium transition-all"
                             />
-                            {/* Only show AI for simple text/url inputs */}
-                            <button
-                                onClick={handleAnalyze}
-                                disabled={isAnalyzing || !config.value}
-                                className="absolute right-3 top-3 bottom-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 rounded-xl text-xs font-bold flex items-center gap-2 hover:shadow-lg transition-all disabled:opacity-50"
-                            >
-                                {isAnalyzing ? <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <Sparkles className="w-3 h-3" />} AI
-                            </button>
+                            
+                            {/* UPDATED: Buttons Container (Reset + AI) */}
+                            <div className="absolute right-3 top-3 bottom-3 flex items-center gap-2">
+                                {/* Reset Button - Clears input completely to fix stuck render state */}
+                                {config.value && (
+                                    <button
+                                        onClick={() => setConfig(p => ({...p, value: ''}))}
+                                        className="h-full aspect-square bg-slate-200 text-slate-500 rounded-xl flex items-center justify-center hover:bg-slate-300 transition-colors"
+                                        title="Nhập lại (Reset)"
+                                    >
+                                        <RotateCcw className="w-4 h-4" />
+                                    </button>
+                                )}
+
+                                {/* Only show AI for simple text/url inputs */}
+                                <button
+                                    onClick={handleAnalyze}
+                                    disabled={isAnalyzing || !config.value}
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 rounded-xl text-xs font-bold flex items-center gap-2 hover:shadow-lg transition-all disabled:opacity-50"
+                                >
+                                    {isAnalyzing ? <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <Sparkles className="w-3 h-3" />} AI
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         // vCard Form
@@ -963,7 +1012,8 @@ const Editor = ({
             </div>
 
             {/* Right Column: Preview & Actions */}
-            <div className="lg:col-span-5 space-y-6 sticky top-24">
+            {/* UPDATED: sticky top-24 -> lg:sticky lg:top-24 to disable sticky on mobile where it breaks flow */}
+            <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
                 <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-slate-100 flex flex-col items-center relative overflow-hidden transition-colors">
                     {/* Decorative Background Blob */}
                     <div className={`absolute -top-20 -right-20 w-64 h-64 rounded-full mix-blend-multiply filter blur-3xl opacity-20 ${def.colorClass.replace('bg-', 'bg-').split(' ')[0]}`} />
@@ -1299,9 +1349,18 @@ export default function App() {
     if (configToRender.barcodeType !== 'qrcode') {
         const tempCanvas = document.createElement('canvas');
         try {
+            // UPDATED: EAN-13 Checksum Calculation for Export
+            let renderValue = configToRender.value;
+            if (configToRender.barcodeType === 'EAN13' && /^\d{12}$/.test(renderValue)) {
+                 let sum = 0;
+                 for(let i=0; i<12; i++) sum += parseInt(renderValue[i]) * (i % 2 === 0 ? 1 : 3);
+                 const checksum = (10 - (sum % 10)) % 10;
+                 renderValue += checksum;
+            }
+
             // Use JsBarcode to render BARS ONLY (displayValue: false)
             // We will render text manually to support letterSpacing
-            JsBarcode(tempCanvas, configToRender.value, {
+            JsBarcode(tempCanvas, renderValue, { // Use renderValue here
                 format: configToRender.barcodeType as any,
                 width: 4, 
                 height: 200, 
@@ -1321,7 +1380,7 @@ export default function App() {
             const wrapperCanvas = document.createElement('canvas');
             
             // Offset for EAN-13 first digit
-            const isEAN13 = configToRender.barcodeType === 'EAN13' && configToRender.value.length === 13;
+            const isEAN13 = configToRender.barcodeType === 'EAN13' && renderValue.length === 13;
             // Need scale factor to match maxContentWidth
             const scaleFactor = maxContentWidth / tempCanvas.width;
             
@@ -1349,7 +1408,7 @@ export default function App() {
                      // Group 1: First Digit (Floating left)
                     if (typeof ctxWrapper.letterSpacing !== 'undefined') ctxWrapper.letterSpacing = '0px';
                     ctxWrapper.textAlign = 'right';
-                    ctxWrapper.fillText(configToRender.value[0], barXOffset - 5, barHeight + textGap);
+                    ctxWrapper.fillText(renderValue[0], barXOffset - 5, barHeight + textGap);
 
                     if (typeof ctxWrapper.letterSpacing !== 'undefined') {
                         ctxWrapper.letterSpacing = `${configToRender.codeLetterSpacing || 0}px`;
@@ -1358,18 +1417,18 @@ export default function App() {
 
                     // Group 2: Digits 2-7
                     const leftCenter = barXOffset + (maxContentWidth * 0.25);
-                    ctxWrapper.fillText(configToRender.value.substring(1, 7), leftCenter, barHeight + textGap);
+                    ctxWrapper.fillText(renderValue.substring(1, 7), leftCenter, barHeight + textGap);
 
                     // Group 3: Digits 8-13
                     const rightCenter = barXOffset + (maxContentWidth * 0.75);
-                    ctxWrapper.fillText(configToRender.value.substring(7, 13), rightCenter, barHeight + textGap);
+                    ctxWrapper.fillText(renderValue.substring(7, 13), rightCenter, barHeight + textGap);
                 } else {
                     if (typeof ctxWrapper.letterSpacing !== 'undefined') {
                         ctxWrapper.letterSpacing = `${configToRender.codeLetterSpacing || 0}px`;
                     }
                     ctxWrapper.textAlign = 'center';
                     // Center within the visual bar area (ignoring potential left offset if not EAN13)
-                    ctxWrapper.fillText(configToRender.value, maxContentWidth / 2, barHeight + textGap);
+                    ctxWrapper.fillText(renderValue, maxContentWidth / 2, barHeight + textGap);
                 }
             }
             
@@ -1544,7 +1603,8 @@ export default function App() {
 
 
   return (
-    <div className="min-h-screen bg-[#fdfbf7] pb-20 transition-colors duration-500 relative">
+    // UPDATED: Added overflow-x-hidden and flex-col to prevent scroll/layout issues
+    <div className="min-h-screen bg-[#fdfbf7] pb-20 transition-colors duration-500 relative flex flex-col overflow-x-hidden">
       <Header setView={setView} view={view} />
       {view === 'dashboard' ? (
         <Dashboard handleSelectType={handleSelectType} />
